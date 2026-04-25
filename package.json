@@ -1,7 +1,7 @@
 {
   "name": "@injaneity/pi-computer-use",
   "version": "0.2.0",
-  "description": "Codex-style computer-use tools for Pi on macOS.",
+  "description": "Codex-style computer-use tools for Pi on macOS and Linux/X11.",
   "type": "module",
   "keywords": [
     "pi-package",
@@ -9,6 +9,8 @@
     "pi",
     "computer-use",
     "macos",
+    "linux",
+    "x11",
     "screenshot",
     "automation"
   ],
@@ -31,8 +33,11 @@
     "scripts/build-native.mjs",
     "scripts/setup-helper.mjs",
     "native/macos/bridge.swift",
+    "native/linux/bridge.mjs",
     "prebuilt/macos",
-    "assets/img.jpg",
+    "assets/logo/logo3.png",
+    "assets/reference/img.jpg",
+    "docs",
     "README.md",
     "LICENSE"
   ],
@@ -43,7 +48,7 @@
     "skills": [
       "./skills"
     ],
-    "image": "./assets/img.jpg"
+    "image": "./assets/reference/img.jpg"
   },
   "scripts": {
     "postinstall": "node scripts/setup-helper.mjs --postinstall",

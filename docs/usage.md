@@ -1,6 +1,6 @@
 # Usage
 
-This guide describes how to use `pi-computer-use` tools from Pi once the extension is installed and macOS permissions are granted.
+This guide describes how to use `pi-computer-use` tools from Pi once the extension is installed. On macOS, grant the helper Accessibility and Screen Recording permissions. On Linux, use an X11/Xorg session and install the prerequisites listed in the README.
 
 ## Core Workflow
 
@@ -18,13 +18,13 @@ Tool results include:
 
 - `target`: app, bundle ID, pid, window title, and window ID.
 - `capture`: screenshot dimensions, scale factor, capture ID, and coordinate space.
-- `axTargets`: semantic targets such as `@e1`.
+- `axTargets`: semantic targets such as `@e1` when available. Linux/X11 currently returns no semantic AX targets.
 - `execution`: strategy, variant, AX/fallback details, and strict-mode compatibility.
 - Optional image content when semantic coverage is weak or fallback recovery is useful.
 
 ## AX Refs First
 
-When the latest state includes AX refs, prefer them over coordinates.
+When the latest state includes AX refs, prefer them over coordinates. This is the normal macOS workflow; the Linux/X11 backend is currently coordinate-based and does not implement semantic refs yet.
 
 ```ts
 click({ ref: "@e1" })
@@ -54,7 +54,7 @@ Coordinates are window-relative screenshot pixels from the latest screenshot.
 | `scroll` | Scroll by AX ref or coordinate | `ref` |
 | `keypress` | Enter, Escape, Tab, arrows, deletion, shortcuts | Semantic keys when possible |
 | `type_text` | Insert text at current cursor/selection | Use after focusing field |
-| `set_text` | Replace AX text value | `ref` with `canSetValue` |
+| `set_text` | Replace AX text value | `ref` with `canSetValue`; macOS only until Linux semantic refs are implemented |
 | `wait` | Pause and refresh state | Polling/loading states |
 | `computer_actions` | Batch obvious actions | Use only when intermediate inspection is unnecessary |
 
@@ -100,7 +100,7 @@ computer_actions({
 })
 ```
 
-For Safari and Chromium-family browsers, this can use an AX-first path for address replacement and navigation.
+For Safari and Chromium-family browsers on macOS, this can use an AX-first path for address replacement and navigation. On Linux/X11, browser control uses focused-window keyboard events.
 
 If `browser_use` is disabled, browser screenshots and actions are refused. See [configuration](./configuration.md).
 
@@ -127,7 +127,7 @@ Each batched action includes execution metadata, including whether it used the `
 
 ## Strict AX Mode
 
-Strict AX mode requires background-safe Accessibility paths.
+Strict AX mode requires background-safe Accessibility paths. It is intended for macOS; leave it disabled on Linux/X11 because the Linux backend currently uses foreground X11 input events.
 
 Allowed when AX support is available:
 

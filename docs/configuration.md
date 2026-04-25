@@ -45,7 +45,7 @@ Default: `false`
 
 When `true`, the extension requires background-safe AX execution and blocks foreground focus, raw keyboard input, raw pointer input, and cursor takeover.
 
-This mode is also referred to as strict AX mode.
+This mode is also referred to as strict AX mode. It is intended for macOS. Leave it disabled on Linux/X11 because the Linux backend currently uses foreground X11 input events and does not implement semantic AX refs yet.
 
 ## Environment Overrides
 

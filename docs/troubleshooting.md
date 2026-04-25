@@ -8,11 +8,13 @@ Reinstall the helper from the package:
 node scripts/setup-helper.mjs --runtime
 ```
 
-Or build it locally:
+Or build the macOS helper locally:
 
 ```bash
 node scripts/build-native.mjs --output ~/.pi/agent/helpers/pi-computer-use/bridge
 ```
+
+Linux does not need a native build; setup copies `native/linux/bridge.mjs` to the helper path.
 
 Confirm the helper exists:
 
@@ -45,6 +47,19 @@ If macOS still denies access:
 Permission setup requires an interactive Pi session because macOS permission panes are user-controlled.
 
 Start Pi interactively, grant permissions, then retry the non-interactive workflow.
+
+## Linux/X11 Prerequisites Fail
+
+Linux support currently requires an X11/Xorg session and external X11 tools. On Ubuntu/Debian-style systems, install:
+
+```bash
+sudo apt update
+sudo apt install wmctrl xdotool imagemagick x11-utils x11-apps
+```
+
+If the helper reports `DISPLAY is not set`, start Pi from an interactive graphical X11 session. If it reports a Wayland session, log out and choose an Xorg/X11 session at the desktop login screen.
+
+The Linux backend is currently coordinate-based. Semantic AX refs like `@e1`, ref-first actions, and `set_text({ ref, text })` are not implemented yet on Linux.
 
 ## Browser Windows Are Refused
 
@@ -95,10 +110,11 @@ The bridge attempts stale-ref recovery for compatible role, label, capability, a
 
 Confirm:
 
-- Screen Recording is granted.
+- On macOS, Screen Recording is granted.
+- On Linux, you are running under X11/Xorg and have `wmctrl`, `xdotool`, `xprop`, and ImageMagick/X11 screenshot tools installed.
 - The target app has an open, controllable window.
 - The window is not closed or hidden between `screenshot` and action.
-- You are running on macOS.
+- You are running on macOS or Linux/X11.
 
 If the target is ambiguous, call `screenshot` with both app and window title:
 
