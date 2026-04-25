@@ -355,7 +355,7 @@ const CURRENT_TARGET_GONE_ERROR =
 	"The current controlled window is no longer available. Call screenshot to choose a new target window.";
 const STALE_CAPTURE_ERROR =
 	"The coordinates were based on an older screenshot. Call screenshot again to refresh the current window state.";
-const NON_MACOS_ERROR = "pi-computer-use currently supports macOS 15+ only.";
+const UNSUPPORTED_PLATFORM_ERROR = "pi-computer-use currently supports macOS 15+ and Linux/X11 only.";
 
 const COMMAND_TIMEOUT_MS = 15_000;
 const SCREENSHOT_TIMEOUT_MS = 25_000;
@@ -1046,8 +1046,8 @@ async function checkPermissions(signal?: AbortSignal): Promise<PermissionStatus>
 async function ensureReady(ctx: ExtensionContext, signal?: AbortSignal): Promise<void> {
 	loadComputerUseConfig(ctx.cwd);
 
-	if (process.platform !== "darwin") {
-		throw new Error(NON_MACOS_ERROR);
+	if (process.platform !== "darwin" && process.platform !== "linux") {
+		throw new Error(UNSUPPORTED_PLATFORM_ERROR);
 	}
 
 	throwIfAborted(signal);
@@ -1181,10 +1181,12 @@ async function restoreUserFocus(target: FrontmostResult, signal?: AbortSignal): 
 		return;
 	}
 
-	const activateTarget = target.bundleId
-		? `application id "${escapeAppleScriptString(target.bundleId)}"`
-		: `application "${escapeAppleScriptString(target.appName)}"`;
-	await runAppleScript([`tell ${activateTarget} to activate`], signal).catch(() => undefined);
+	if (process.platform === "darwin") {
+		const activateTarget = target.bundleId
+			? `application id "${escapeAppleScriptString(target.bundleId)}"`
+			: `application "${escapeAppleScriptString(target.appName)}"`;
+		await runAppleScript([`tell ${activateTarget} to activate`], signal).catch(() => undefined);
+	}
 }
 
 async function focusControlledWindow(target: ResolvedTarget, signal?: AbortSignal): Promise<void> {
@@ -1257,6 +1259,7 @@ async function runAppleScript(lines: string[], signal?: AbortSignal): Promise<vo
 }
 
 function browserOpenLocationAppleScript(target: ResolvedTarget, url: string): string[] | undefined {
+	if (process.platform !== "darwin") return undefined;
 	if (!isBrowserApp(target.appName, target.bundleId)) return undefined;
 	const appTarget = target.bundleId
 		? `application id "${escapeAppleScriptString(target.bundleId)}"`
@@ -1311,6 +1314,7 @@ function findNewWindow(before: HelperWindow[], after: HelperWindow[]): HelperWin
 }
 
 async function openIsolatedBrowserWindow(app: HelperApp, signal?: AbortSignal): Promise<HelperWindow | undefined> {
+	if (process.platform !== "darwin") return undefined;
 	const script = buildBrowserNewWindowAppleScript(app);
 	if (!script) {
 		return undefined;

@@ -11,6 +11,13 @@ import { fileURLToPath } from "node:url";
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const helperDestPath = path.join(os.homedir(), ".pi", "agent", "helpers", "pi-computer-use", "bridge");
 const helperSourcePath = path.join(rootDir, "native", "macos", "bridge.swift");
+const linuxHelperSourcePath = path.join(rootDir, "native", "linux", "bridge.mjs");
+
+const linuxInstallHint = [
+	"Linux support currently requires an X11 session plus these system tools:",
+	"  sudo apt install wmctrl xdotool imagemagick x11-utils x11-apps",
+	"Wayland sessions are not supported yet; choose an Xorg/X11 session at login.",
+].join("\n");
 
 const args = new Set(process.argv.slice(2));
 const isPostinstall = args.has("--postinstall");
@@ -85,6 +92,58 @@ async function run(command, commandArgs) {
 	});
 }
 
+async function commandAvailable(command) {
+	return await new Promise((resolve) => {
+		const child = spawn("sh", ["-c", `command -v ${command} >/dev/null 2>&1`], { stdio: "ignore" });
+		child.on("error", () => resolve(false));
+		child.on("close", (code) => resolve(code === 0));
+	});
+}
+
+async function linuxDependencyReport() {
+	const [wmctrl, xdotool, xprop, importCommand, xwd, convert] = await Promise.all([
+		commandAvailable("wmctrl"),
+		commandAvailable("xdotool"),
+		commandAvailable("xprop"),
+		commandAvailable("import"),
+		commandAvailable("xwd"),
+		commandAvailable("convert"),
+	]);
+
+	const missing = [];
+	if (!wmctrl) missing.push("wmctrl");
+	if (!xdotool) missing.push("xdotool");
+	if (!xprop) missing.push("xprop");
+	if (!importCommand && !(xwd && convert)) {
+		missing.push("ImageMagick import or xwd+convert");
+	}
+
+	const warnings = [];
+	if (!process.env.DISPLAY) {
+		warnings.push("DISPLAY is not set, so no X11 display is available.");
+	}
+	if (String(process.env.XDG_SESSION_TYPE || "").toLowerCase() === "wayland") {
+		warnings.push("XDG_SESSION_TYPE=wayland was detected; Linux support currently requires X11/Xorg.");
+	}
+
+	return { missing, warnings };
+}
+
+async function validateLinuxSystemDependencies() {
+	const { missing, warnings } = await linuxDependencyReport();
+	const problems = [];
+	if (missing.length > 0) problems.push(`Missing required command(s): ${missing.join(", ")}.`);
+	problems.push(...warnings);
+	if (problems.length === 0) return;
+
+	const message = `[pi-computer-use] Linux/X11 prerequisite check failed:\n${problems.map((problem) => `- ${problem}`).join("\n")}\n${linuxInstallHint}`;
+	if (isPostinstall) {
+		console.warn(message);
+		return;
+	}
+	throw new Error(message);
+}
+
 function moduleCachePath(arch) {
 	return path.join(os.tmpdir(), `pi-computer-use-swift-module-cache-${arch}`);
 }
@@ -132,12 +191,26 @@ async function buildHelper(arch, outputPath) {
 }
 
 async function setup() {
+	if (process.platform === "linux") {
+		if (!(await exists(linuxHelperSourcePath))) {
+			throw new Error(`Linux helper source not found at ${linuxHelperSourcePath}`);
+		}
+		const { changed } = await copyIfChanged(linuxHelperSourcePath, helperDestPath);
+		console.log(
+			changed
+				? `[pi-computer-use] installed Linux X11 helper to ${helperDestPath}`
+				: `[pi-computer-use] Linux X11 helper already up to date at ${helperDestPath}`,
+		);
+		await validateLinuxSystemDependencies();
+		return;
+	}
+
 	if (process.platform !== "darwin") {
 		if (isPostinstall) {
-			console.warn("[pi-computer-use] skipping helper setup: platform is not macOS.");
+			console.warn("[pi-computer-use] skipping helper setup: platform is not macOS or Linux.");
 			return;
 		}
-		throw new Error("pi-computer-use helper is only supported on macOS.");
+		throw new Error("pi-computer-use helper is only supported on macOS and Linux/X11.");
 	}
 
 	const arch = normalizeArch(process.arch);

@@ -4,9 +4,11 @@ This guide covers local setup, helper builds, validation, and release notes for 
 
 ## Requirements
 
-- macOS for native helper development and computer-use QA.
+- macOS for native helper development and macOS computer-use QA.
+- Linux/X11 for Linux backend QA.
 - Node.js `>=20.6.0`.
-- Xcode command line tools for native helper builds.
+- Xcode command line tools for macOS native helper builds.
+- Linux/X11 prerequisites for Linux testing: `wmctrl`, `xdotool`, `imagemagick`, `x11-utils`, and `x11-apps`.
 - Pi for extension testing.
 
 ## Local Setup
@@ -37,14 +39,18 @@ The runtime helper lives at:
 ~/.pi/agent/helpers/pi-computer-use/bridge
 ```
 
-The helper needs:
+On macOS, the helper needs:
 
 - Accessibility
 - Screen Recording
 
 If permissions are missing, start Pi interactively and let the extension guide setup.
 
+On Linux, the helper is copied from `native/linux/bridge.mjs`; no native build or desktop permission prompt is required, but the runtime requires an X11/Xorg session and the external tools listed above.
+
 ## Helper Builds
+
+The build script is for the macOS Swift helper. The Linux/X11 helper is a Node.js script and is copied during setup.
 
 Build for the current architecture into the repo prebuilt path:
 
